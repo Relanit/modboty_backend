@@ -3,9 +3,9 @@ import time
 from fastapi import APIRouter
 from fastapi.logger import logger
 
-from src.config import config
-from src.database import fernet, db
-from src.singleton_aiohttp import SingletonAiohttp
+from config import config
+from database import fernet, db
+from singleton_aiohttp import SingletonAiohttp
 
 router = APIRouter()
 

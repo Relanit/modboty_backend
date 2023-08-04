@@ -5,9 +5,9 @@ from fastapi_cache import FastAPICache
 from fastapi.middleware.cors import CORSMiddleware
 from redis import asyncio as aioredis
 
-from src.auth.route import router as auth_router
-from src.home_page.route import router as home_page_router
-from src.singleton_aiohttp import SingletonAiohttp
+from auth.route import router as auth_router
+from home_page.route import router as home_page_router
+from singleton_aiohttp import SingletonAiohttp
 
 
 async def on_start_up() -> None:
