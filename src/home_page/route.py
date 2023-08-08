@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi_cache.decorator import cache
 
-from home_page.schemas import Streamer
 from database import db
+from home_page.schemas import Streamer
 
 router = APIRouter()
 

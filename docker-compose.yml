@@ -1,0 +1,16 @@
+version: "3.7"
+services:
+  redis:
+    image: redis:7
+    container_name: modboty_redis
+    command: --port 5370
+    expose:
+      - 5370
+  app:
+    build:
+      context: .
+    container_name: modboty_backend
+    ports:
+      - 5000:8000
+    depends_on:
+      - redis

@@ -1,0 +1,9 @@
+aiohttp
+fastapi
+uvicorn
+gunicorn
+motor
+cryptography
+dnspython
+fastapi-cache2[redis]
+pydantic
