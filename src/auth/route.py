@@ -35,7 +35,7 @@ async def authorize(
 
     try:
         async with session.post(
-            f'https://id.twitch.tv/oauth2/token?client_id={config["twitch"]["client_id"]}&client_secret={config["twitch"]["client_secret"]}&code={code}&grant_type=authorization_code&redirect_uri=http://localhost:5000/auth'
+            f'https://id.twitch.tv/oauth2/token?client_id={config["twitch"]["client_id"]}&client_secret={config["twitch"]["client_secret"]}&code={code}&grant_type=authorization_code&redirect_uri=https://api.modbot.xyz/auth'
         ) as response:
             if response.status != 200:
                 raise HTTPException(
