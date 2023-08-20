@@ -12,17 +12,23 @@ from config import config
 
 app = FastAPI()
 
+
 @app.on_event("startup")
 async def startup_event():
     SingletonAiohttp.get_async_session()
     redis = aioredis.from_url(config["redis"]["redis_connection_string"], encoding="utf8", decode_responses=True)
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await SingletonAiohttp.close_async_session()
 
-origins = ["http://localhost:8080", "https://modbot.xyz"]
+
+app.include_router(auth_router)
+app.include_router(home_page_router)
+
+origins = ["http://localhost:8080", "https://modbot.xyz", "http://localhost:5000"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +43,3 @@ app.add_middleware(
         "Authorization",
     ],
 )
-
-app.include_router(auth_router)
-app.include_router(home_page_router)
