@@ -10,7 +10,7 @@ from database import SingletonAiohttp
 from config import config
 
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 
 
 @app.on_event("startup")
