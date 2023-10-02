@@ -1,32 +1,32 @@
 from fastapi import FastAPI
-from fastapi_cache.backends.redis import RedisBackend
-from fastapi_cache import FastAPICache
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
+from beanie import init_beanie
 
-from auth.route import router as auth_router
-from home_page.route import router as home_page_router
-from database import SingletonAiohttp
+from db import db, SingletonAiohttp
+from oauth.schemas import UserRead, UserUpdate, UserCreate
 from config import config
+from home_page.route import router as home_page_router
+from oauth.route import router as oauth_router
+from oauth.models import User, Editors
+from oauth.base_config import auth_backend, fastapi_users
+
+app_configs = {}
+if not config["app"]["show_docs"]:
+    app_configs["openapi_url"] = None
+
+app = FastAPI(**app_configs)
 
 
-app = FastAPI(docs_url=None, redoc_url=None)
-
-
-@app.on_event("startup")
-async def startup_event():
-    SingletonAiohttp.get_async_session()
-    redis = aioredis.from_url(config["redis"]["redis_connection_string"], encoding="utf8", decode_responses=True)
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await SingletonAiohttp.close_async_session()
-
-
-app.include_router(auth_router)
 app.include_router(home_page_router)
+app.include_router(oauth_router)
+app.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate, UserCreate),
+    prefix="/users",
+    tags=["users"],
+)
 
 origins = ["http://localhost:8080", "https://modbot.xyz", "http://localhost:5000"]
 
@@ -43,3 +43,22 @@ app.add_middleware(
         "Authorization",
     ],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    SingletonAiohttp.get_async_session()
+    redis = aioredis.from_url(config["redis"]["connection_string"], encoding="utf8", decode_responses=True)
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    await init_beanie(
+        database=db,
+        document_models=[
+            User,
+            Editors
+        ],
+    )
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await SingletonAiohttp.close_async_session()

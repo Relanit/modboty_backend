@@ -1,9 +1,11 @@
-aiohttp
-fastapi
+aiohttp~=3.8.5
+fastapi==0.103.2
 uvicorn
 gunicorn
-motor
-cryptography
+motor==3.3.1
+cryptography~=41.0.3
 dnspython
 fastapi-cache2[redis]
-pydantic
+pydantic==2.4.2
+redis==5.0.1
+fastapi-users[beanie]

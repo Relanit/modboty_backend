@@ -6,10 +6,12 @@ from cryptography.fernet import Fernet
 
 from config import config
 
-mongo_connection_string = config.get("db", "mongo_connection_string")
-db = motor.motor_asyncio.AsyncIOMotorClient(mongo_connection_string).modboty
+MONGO_URL = config.get("mongo", "connection_string")
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
+db = client.modboty
 
-encryption_key = config.get("db", "encryption_key")
+
+encryption_key = config.get("mongo", "encryption_key")
 fernet = Fernet(encryption_key.encode())
 
 
@@ -17,23 +19,23 @@ SIZE_POOL_AIOHTTP = 100
 
 
 class SingletonAiohttp:
-    async_session: aiohttp.ClientSession | None = None
+    session: aiohttp.ClientSession | None = None
 
     @classmethod
     def get_async_session(cls) -> aiohttp.ClientSession:
-        if cls.async_session is None:
+        if cls.session is None:
             timeout = aiohttp.ClientTimeout(total=10)
             connector = aiohttp.TCPConnector(
                 family=AF_INET, limit_per_host=SIZE_POOL_AIOHTTP
             )
-            cls.async_session = aiohttp.ClientSession(
+            cls.session = aiohttp.ClientSession(
                 timeout=timeout, connector=connector
             )
 
-        return cls.async_session
+        return cls.session
 
     @classmethod
     async def close_async_session(cls) -> None:
-        if cls.async_session:
-            await cls.async_session.close()
-            cls.async_session = None
+        if cls.session:
+            await cls.session.close()
+            cls.session = None
