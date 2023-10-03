@@ -1,5 +1,3 @@
-from typing import Optional
-
 from beanie import PydanticObjectId
 from fastapi import Depends
 from fastapi.requests import Request
@@ -12,14 +10,14 @@ from oauth.user_database import UserDatabase, get_user_db
 
 
 class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
-    async def on_after_register(self, user: User, request: Optional[Request] = None):
+    async def on_after_register(self, user: User, request: Request | None = None):
         print(f"User {user.id} has registered.")
 
     async def on_after_login(
         self,
         user: models.UP,
-        request: Optional[Request] = None,
-        response: Optional[Response] = None,
+        request: Request | None = None,
+        response: Response | None = None,
     ) -> None:
         print(f"User {user.id} has been logged in")
 
@@ -29,9 +27,9 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         _: str,
         account_id: str,
         account_email: str,
-        __: Optional[int] = None,
-        ___: Optional[str] = None,
-        request: Optional[Request] = None,
+        __: int | None = None,
+        ___: str | None = None,
+        request: Request | None = None,
         *,
         associate_by_email: bool = False,
         is_verified_by_default: bool = False,

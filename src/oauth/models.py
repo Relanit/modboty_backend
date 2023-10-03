@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from beanie import Document, PydanticObjectId
 from pydantic import Field, BaseModel
 from pymongo import IndexModel
@@ -15,7 +13,7 @@ class OAuthAccount(BaseModel):
     editor_of: list[str] = Field(default_factory=list)
 
 
-class BaseUser(BaseModel):
+class User(Document):
     email: str
     is_active: bool = True
     is_superuser: bool = False
@@ -33,20 +31,12 @@ class BaseUser(BaseModel):
         ]
 
 
-class User(BaseUser, Document):
-    pass
-
-
-class BaseEditors(BaseModel):
+class Editors(Document):
     channel_id: int
-    channel: Optional[str] = None
-    editors: List[int]
-    editor_commands: Optional[List[str]] = None
+    channel: str | None = None
+    editors: list[int]
+    editor_commands: list[str] | None = None
 
     class Settings:
         name = "editors"
         indexes = [IndexModel("channel_id", unique=True)]
-
-
-class Editors(BaseEditors, Document):
-    pass

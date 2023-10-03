@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from fastapi_users.models import OAP
 from fastapi_users_db_beanie import BeanieUserDatabase, UP_BEANIE
@@ -9,7 +9,7 @@ from oauth.models import User, OAuthAccount
 class UserDatabase(BeanieUserDatabase):
     async def get_by_oauth_account(
         self, oauth: str, account_id: str
-    ) -> Optional[UP_BEANIE]:
+    ) -> UP_BEANIE | None:
         """Get a single user by OAuth account id."""
         if self.oauth_account_model is None:
             raise NotImplementedError()

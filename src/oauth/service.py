@@ -1,6 +1,7 @@
 import json
 
 import jwt
+from beanie.operators import Or
 from fastapi import HTTPException
 from fastapi import Response
 from fastapi import status
@@ -9,14 +10,13 @@ from fastapi_users import models
 from fastapi_users.authentication import Strategy
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router import ErrorCode
-from beanie.operators import Or
 
 from config import config
 from db import SingletonAiohttp
 from oauth.base_config import auth_backend
 from oauth.manager import UserManager
-from oauth.schemas import Body
 from oauth.models import Editors
+from oauth.schemas import Body
 
 claims = {
     "id_token": {

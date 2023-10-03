@@ -1,17 +1,18 @@
+from beanie import init_beanie
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis import asyncio as aioredis
-from beanie import init_beanie
 
-from db import db, SingletonAiohttp
-from oauth.schemas import UserRead, UserUpdate, UserCreate
 from config import config
+from db import db, SingletonAiohttp
+from home_page.models import Config
 from home_page.route import router as home_page_router
-from oauth.route import router as oauth_router
+from oauth.base_config import fastapi_users
 from oauth.models import User, Editors
-from oauth.base_config import auth_backend, fastapi_users
+from oauth.route import router as oauth_router
+from oauth.schemas import UserRead, UserUpdate
 
 app_configs = {}
 if not config["app"]["show_docs"]:
@@ -23,7 +24,7 @@ app = FastAPI(**app_configs)
 app.include_router(home_page_router)
 app.include_router(oauth_router)
 app.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate, UserCreate),
+    fastapi_users.get_users_router(UserRead, UserUpdate),
     prefix="/users",
     tags=["users"],
 )
@@ -54,7 +55,8 @@ async def startup_event():
         database=db,
         document_models=[
             User,
-            Editors
+            Editors,
+            Config
         ],
     )
 

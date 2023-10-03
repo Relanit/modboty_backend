@@ -1,20 +1,21 @@
 import secrets
 
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi import Response, Request, status
+from fastapi import APIRouter, HTTPException, Depends, Response, Request, status
 from fastapi_users import models
 from fastapi_users.authentication import Strategy
 
 from config import config
 from oauth.base_config import get_jwt_strategy
+from dependencies import current_user_editor
 from oauth.manager import get_user_manager, UserManager
-from oauth.schemas import Body
+from oauth.models import User
+from oauth.schemas import Body, AuthorizationURL
 from oauth.service import claims, login_scope, process_login
 
 router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
 
-@router.get("/url")
+@router.get("/url", response_model=AuthorizationURL)
 def oauth_url(response: Response):
     url = "https://id.twitch.tv/oauth2/authorize"
     client_id = config["twitch"]["client_id"]
@@ -42,6 +43,11 @@ async def login(
 
     response.delete_cookie("state")
     return response
+
+
+@router.post("/protected-route")
+def protected_route(broadcaster_id: str, user: User = Depends(current_user_editor)):
+    return f"Hello, {user.platforms[0].account_id}, editor of {broadcaster_id}!"
 
 
 # @router.post("/oauth/authorize")

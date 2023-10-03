@@ -1,6 +1,5 @@
 from beanie import PydanticObjectId
 from fastapi_users import schemas
-from fastapi_users.schemas import CreateUpdateDictModel
 from pydantic import BaseModel
 
 
@@ -9,11 +8,11 @@ class Body(BaseModel):
     code: str
 
 
+class AuthorizationURL(BaseModel):
+    authorization_url: str
+
+
 class UserRead(schemas.BaseUser[PydanticObjectId]):
-    pass
-
-
-class UserCreate(CreateUpdateDictModel):
     pass
 
 
