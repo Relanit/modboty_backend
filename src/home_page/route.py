@@ -9,6 +9,6 @@ router = APIRouter(tags=["Home"])
 
 @router.get("/channels", response_model=ChannelsData)
 @cache(expire=600)
-async def get_total_channels():
+async def channels():
     config = await Config.find_one(Config.id == 1)
     return {"channelCount": len(config.channels), "topChannels": config.top_streamers}

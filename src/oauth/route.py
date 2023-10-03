@@ -1,29 +1,34 @@
 import secrets
+import time
 
+from aiohttp import ClientSession
 from fastapi import APIRouter, HTTPException, Depends, Response, Request, status
 from fastapi_users import models
 from fastapi_users.authentication import Strategy
 
-from config import config
+from db import SingletonAiohttp, fernet
+from home_page.models import Config, UserToken
 from oauth.base_config import get_jwt_strategy
-from dependencies import current_user_editor
 from oauth.manager import get_user_manager, UserManager
-from oauth.models import User
 from oauth.schemas import Body, AuthorizationURL
-from oauth.service import claims, login_scope, process_login
+from oauth.service import claims, login_scope, process_login, client_id, authorization_scope, verify_request
 
 router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
 
 @router.get("/url", response_model=AuthorizationURL)
-def oauth_url(response: Response):
+def oauth_url(request: Request, response: Response):
+    intent = request.cookies.get("intent")
+    if intent is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing intent cookie")
+
     url = "https://id.twitch.tv/oauth2/authorize"
-    client_id = config["twitch"]["client_id"]
     redirect_uri = "http://localhost:8080/oauth/twitch/callback"
     state = secrets.token_hex(20)
     response.set_cookie(key="state", value=state, max_age=300, httponly=True, samesite="strict", secure=True)
+    scope = login_scope if intent == "login" else authorization_scope
 
-    url = f"{url}?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={login_scope}&claims={claims}&state={state}"
+    url = f"{url}?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&claims={claims}&state={state}"
     return {"authorization_url": url}
 
 
@@ -33,9 +38,10 @@ async def login(
     body: Body,
     user_manager: UserManager = Depends(get_user_manager),
     strategy: Strategy[models.UP, models.ID] = Depends(get_jwt_strategy),
+    session: ClientSession = Depends(SingletonAiohttp.get_async_session),
 ):
     try:
-        response = await process_login(request, body, user_manager, strategy)
+        response = await process_login(request, body, user_manager, strategy, session)
     except HTTPException:
         raise
     except Exception as e:
@@ -45,94 +51,40 @@ async def login(
     return response
 
 
-@router.post("/protected-route")
-def protected_route(broadcaster_id: str, user: User = Depends(current_user_editor)):
-    return f"Hello, {user.platforms[0].account_id}, editor of {broadcaster_id}!"
+@router.post("/authorize")
+async def authorize(
+    request: Request,
+    body: Body,
+    response: Response,
+    session: ClientSession = Depends(SingletonAiohttp.get_async_session),
+):
+    try:
+        results, decoded_jws = await verify_request(request, body, session)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    user_id = int(decoded_jws["sub"])
+    config = await Config.find_one(Config.id == 1)
+    if user_id not in config.channels:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"status": "error", "error_code": 2, "details": "Bot is not connected to the channel"},
+        )
 
-# @router.post("/oauth/authorize")
-# async def authorize(
-#     request: Request,
-#     body: Body,
-#     session: ClientSession = Depends(SingletonAiohttp.get_async_session),
-# ):
-#     # if set(scope.split()) != extra_scope:
-#     #     raise HTTPException(
-#     #         status_code=500,
-#     #         detail={"status": "error", "error_code": 1, "details": None},
-#     #     )
-#
-#     try:
-#         async with session.post(
-#             f'https://id.twitch.tv/oauth2/token?client_id={config["twitch"]["client_id"]}&client_secret={config["twitch"]["client_secret"]}&code={code}&grant_type=authorization_code&redirect_uri=http://localhost:5000/auth'
-#         ) as response:
-#             if response.status != 200:
-#                 raise HTTPException(
-#                     status_code=500,
-#                     detail={
-#                         "status": "error",
-#                         "error_code": 1,
-#                         "details": await response.text(),
-#                     },
-#                 )
-#
-#             token_data = await response.json()
-#
-#         if "access_token" not in token_data:
-#             raise HTTPException(
-#                 status_code=500,
-#                 detail={
-#                     "status": "error",
-#                     "error_code": 1,
-#                     "details": await response.text(),
-#                 },
-#             )
-#
-#         async with session.get(
-#             "https://api.twitch.tv/helix/users",
-#             headers={
-#                 "Authorization": f'Bearer {token_data["access_token"]}',
-#                 "Client-Id": config["twitch"]["client_id"],
-#             },
-#         ) as response:
-#             if response.status != 200:
-#                 raise HTTPException(
-#                     status_code=500,
-#                     detail={
-#                         "status": "error",
-#                         "error_code": 1,
-#                         "details": await response.text(),
-#                     },
-#                 )
-#
-#             user_data = await response.json()
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=500,
-#             detail={"status": "error", "error_code": 1, "details": str(e)},
-#         )
-#
-#     user_id = int(user_data["data"][0]["id"])
-#     to_send = {
-#         "id": user_id,
-#         "access_token": fernet.encrypt(token_data["access_token"].encode()).decode(),
-#         "refresh_token": fernet.encrypt(token_data["refresh_token"].encode()).decode(),
-#         "expire_time": time.time() + token_data["expires_in"],
-#     }
-#
-#     data = await db.config.find_one({"_id": 1})
-#     if user_id not in list(data["channels"]):
-#         raise HTTPException(
-#             status_code=500,
-#             detail={"status": "error", "error_code": 2, "details": None},
-#         )
-#
-#     if [user for user in data.get("user_tokens", [{}]) if user.get("id", "") == user_id]:
-#         await db.config.update_one(
-#             {"_id": 1, "user_tokens.id": user_id},
-#             {"$set": {"user_tokens.$": to_send}},
-#         )
-#     else:
-#         await db.config.update_one({"_id": 1}, {"$addToSet": {"user_tokens": to_send}})
-#
-#     return {"status": "success"}
+    new_token = UserToken(
+        id=user_id,
+        access_token=fernet.encrypt(results["access_token"].encode()).decode(),
+        refresh_token=fernet.encrypt(results["refresh_token"].encode()).decode(),
+        expire_time=time.time() + results["expires_in"],
+    )
+
+    if user_token := next((token for token in config.user_tokens if token.id == user_id), None):
+        config.user_tokens[config.user_tokens.index(user_token)] = new_token
+    else:
+        config.user_tokens.append(new_token)
+
+    await config.save()
+    response.delete_cookie("state")
+    return {"status": "success"}

@@ -1,6 +1,7 @@
 import json
 
 import jwt
+from aiohttp import ClientSession
 from beanie.operators import Or
 from fastapi import HTTPException
 from fastapi import Response
@@ -12,7 +13,6 @@ from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router import ErrorCode
 
 from config import config
-from db import SingletonAiohttp
 from oauth.base_config import auth_backend
 from oauth.manager import UserManager
 from oauth.models import Editors
@@ -29,17 +29,21 @@ claims = {
 claims = json.dumps(claims)
 
 login_scope = "+".join(["user:read:email", "openid"])
-authorization_scope = {
-    "channel:manage:broadcast",
-    "channel:manage:polls",
-    "channel:manage:predictions",
-    "channel:manage:vips",
-    "channel:read:polls",
-    "channel:read:predictions",
-    "channel:read:subscriptions",
-    "channel:read:vips",
-    "moderation:read",
-}
+authorization_scope = "+".join(
+    [
+        "channel:manage:broadcast",
+        "channel:manage:polls",
+        "channel:manage:predictions",
+        "channel:manage:vips",
+        "channel:read:polls",
+        "channel:read:predictions",
+        "channel:read:subscriptions",
+        "channel:read:vips",
+        "moderation:read",
+        "user:read:email",
+        "openid"
+    ]
+)
 
 client_id = config["twitch"]["client_id"]
 client_secret = config["twitch"]["client_secret"]
@@ -53,7 +57,7 @@ async def verify_twitch_jwt(jwt_token: str) -> dict | None:
     return jwt.decode(jwt_token, key, [header["alg"]], audience=client_id)
 
 
-async def verify_request(request: Request, body: Body) -> tuple[dict, dict]:
+async def verify_request(request: Request, body: Body, session: ClientSession) -> tuple[dict, dict]:
     try:
         body_state, code = body.state, body.code
         cookie_state = request.cookies.get("state")
@@ -66,7 +70,7 @@ async def verify_request(request: Request, body: Body) -> tuple[dict, dict]:
         url = "https://id.twitch.tv/oauth2/token"
         redirect_uri = "http://localhost:8080/oauth/twitch/callback"
 
-        async with SingletonAiohttp.session.post(
+        async with session.post(
             f"{url}?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={redirect_uri}"
         ) as response:
             if response.status != 200:
@@ -94,8 +98,9 @@ async def process_login(
     body: Body,
     user_manager: UserManager,
     strategy: Strategy[models.UP, models.ID],
+    session: ClientSession,
 ) -> Response:
-    results, decoded_jws = await verify_request(request, body)
+    results, decoded_jws = await verify_request(request, body, session)
 
     if not decoded_jws["email_verified"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="unverified email")
