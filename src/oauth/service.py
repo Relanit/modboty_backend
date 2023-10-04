@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlencode
 
 import jwt
 from aiohttp import ClientSession
@@ -28,8 +29,8 @@ claims = {
 }
 claims = json.dumps(claims)
 
-login_scope = "+".join(["user:read:email", "openid"])
-authorization_scope = "+".join(
+login_scope = " ".join(["user:read:email", "openid"])
+authorization_scope = " ".join(
     [
         "channel:manage:broadcast",
         "channel:manage:polls",
@@ -47,6 +48,20 @@ authorization_scope = "+".join(
 
 client_id = config["twitch"]["client_id"]
 client_secret = config["twitch"]["client_secret"]
+
+
+def get_oauth_url(intent: str, state: str) -> str:
+    scope = login_scope if intent == "login" else authorization_scope
+    params = {
+        "response_type": "code",
+        "client_id": client_id,
+        "redirect_uri": f"{config['app']['redirect_url']}/oauth/twitch/callback",
+        "scope": scope,
+        "claims": claims,
+        "state": state,
+    }
+    return f"https://id.twitch.tv/oauth2/authorize?{urlencode(params)}"
+
 
 jwks_client = jwt.PyJWKClient("https://id.twitch.tv/oauth2/keys")
 
@@ -68,7 +83,7 @@ async def verify_request(request: Request, body: Body, session: ClientSession) -
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="State mismatch")
 
         url = "https://id.twitch.tv/oauth2/token"
-        redirect_uri = "http://localhost:8080/oauth/twitch/callback"
+        redirect_uri = f"{config['app']['redirect_url']}/oauth/twitch/callback"
 
         async with session.post(
             f"{url}?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={redirect_uri}"

@@ -10,25 +10,21 @@ from db import SingletonAiohttp, fernet
 from home_page.models import Config, UserToken
 from oauth.base_config import get_jwt_strategy
 from oauth.manager import get_user_manager, UserManager
-from oauth.schemas import Body, AuthorizationURL
-from oauth.service import claims, login_scope, process_login, client_id, authorization_scope, verify_request
+from oauth.schemas import Body, OAuthURL
+from oauth.service import get_oauth_url, process_login, verify_request
 
 router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
 
-@router.get("/url", response_model=AuthorizationURL)
+@router.get("/url", response_model=OAuthURL)
 def oauth_url(request: Request, response: Response):
     intent = request.cookies.get("intent")
     if intent is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing intent cookie")
 
-    url = "https://id.twitch.tv/oauth2/authorize"
-    redirect_uri = "http://localhost:8080/oauth/twitch/callback"
     state = secrets.token_hex(20)
     response.set_cookie(key="state", value=state, max_age=300, httponly=True, samesite="strict", secure=True)
-    scope = login_scope if intent == "login" else authorization_scope
-
-    url = f"{url}?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&claims={claims}&state={state}"
+    url = get_oauth_url(intent, state)
     return {"authorization_url": url}
 
 
@@ -39,7 +35,7 @@ async def login(
     user_manager: UserManager = Depends(get_user_manager),
     strategy: Strategy[models.UP, models.ID] = Depends(get_jwt_strategy),
     session: ClientSession = Depends(SingletonAiohttp.get_async_session),
-):
+) -> Response:
     try:
         response = await process_login(request, body, user_manager, strategy, session)
     except HTTPException:
@@ -51,7 +47,7 @@ async def login(
     return response
 
 
-@router.post("/authorize")
+@router.post("/authorize", response_model=dict[str, bool])
 async def authorize(
     request: Request,
     body: Body,
@@ -87,4 +83,4 @@ async def authorize(
 
     await config.save()
     response.delete_cookie("state")
-    return {"status": "success"}
+    return {"success": True}

@@ -8,8 +8,12 @@ class Body(BaseModel):
     code: str
 
 
-class AuthorizationURL(BaseModel):
+class OAuthURL(BaseModel):
     authorization_url: str
+
+
+class Success(BaseModel):
+    success: bool
 
 
 class UserRead(schemas.BaseUser[PydanticObjectId]):
