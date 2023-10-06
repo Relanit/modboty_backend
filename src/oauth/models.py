@@ -18,7 +18,9 @@ class User(Document):
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
-    platforms: list[OAuthAccount] = Field(default_factory=list)
+    avatar_url: str
+    display_name: str
+    connections: list[OAuthAccount] = Field(default_factory=list)
 
     class Settings:
         name = "user"

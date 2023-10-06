@@ -16,8 +16,8 @@ class UserDatabase(BeanieUserDatabase):
 
         return await self.user_model.find_one(
             {
-                "platforms.platform": oauth,
-                "platforms.account_id": account_id,
+                "connections.platform": oauth,
+                "connections.account_id": account_id,
             }
         )
 
@@ -29,7 +29,7 @@ class UserDatabase(BeanieUserDatabase):
             raise NotImplementedError()
 
         platform = self.oauth_account_model(**create_dict)
-        user.platforms.append(platform)  # type: ignore
+        user.connections.append(platform)  # type: ignore
 
         await user.save()
         return user
@@ -41,13 +41,13 @@ class UserDatabase(BeanieUserDatabase):
         if self.oauth_account_model is None:
             raise NotImplementedError()
 
-        for i, existing_oauth_account in enumerate(user.platforms):  # type: ignore
+        for i, existing_oauth_account in enumerate(user.connections):  # type: ignore
             if (
                 existing_oauth_account.platform == oauth_account.platform
                 and existing_oauth_account.account_id == oauth_account.account_id
             ):
                 for key, value in update_dict.items():
-                    setattr(user.platforms[i], key, value)  # type: ignore
+                    setattr(user.connections[i], key, value)  # type: ignore
 
         await user.save()
         return user

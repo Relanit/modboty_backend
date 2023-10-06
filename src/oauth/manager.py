@@ -35,6 +35,8 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         is_verified_by_default: bool = False,
         editors=None,
         editor_of=None,
+        avatar_url=None,
+        display_name=None,
     ) -> models.UOAP:
         """
         Handle the callback after a successful OAuth authentication.
@@ -47,7 +49,6 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
 
         If the user does not exist, it is created and the on_after_register handler
         is triggered.
-
         :param platform: Name of the OAuth client.
         :param _: Valid access token for the service provider.
         :param account_id: models.ID of the user on the service provider.
@@ -65,6 +66,8 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         Defaults to False.
         :param editors: list of channel editors account ids
         :param editor_of: list of account ids where user is editor
+        :param avatar_url: url to user's avatar
+        :param display_name: user's display name
         :return: A user.
         """
         if editor_of is None:
@@ -76,7 +79,7 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
             "account_id": account_id,
             "account_email": account_email,
             "editors": editors,
-            "editor_of": editor_of
+            "editor_of": editor_of,
         }
 
         try:
@@ -93,13 +96,15 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
                 user_dict = {
                     "email": account_email,
                     "is_verified": is_verified_by_default,
+                    "avatar_url": avatar_url,
+                    "display_name": display_name
                 }
                 user = await self.user_db.create(user_dict)
                 user = await self.user_db.add_oauth_account(user, oauth_account_dict)
                 await self.on_after_register(user, request)
         else:
             # Update oauth
-            for existing_oauth_account in user.platforms:
+            for existing_oauth_account in user.connections:
                 if (
                     existing_oauth_account.account_id == account_id
                     and existing_oauth_account.platform == platform

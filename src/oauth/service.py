@@ -55,7 +55,7 @@ def get_oauth_url(intent: str, state: str) -> str:
     params = {
         "response_type": "code",
         "client_id": client_id,
-        "redirect_uri": f"{config['app']['redirect_url']}/oauth/twitch/callback",
+        "redirect_uri": f"{config['app']['redirect_url']}/oauth/callback",
         "scope": scope,
         "claims": claims,
         "state": state,
@@ -83,7 +83,7 @@ async def verify_request(request: Request, body: Body, session: ClientSession) -
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="State mismatch")
 
         url = "https://id.twitch.tv/oauth2/token"
-        redirect_uri = f"{config['app']['redirect_url']}/oauth/twitch/callback"
+        redirect_uri = f"{config['app']['redirect_url']}/oauth/callback"
 
         async with session.post(
             f"{url}?client_id={client_id}&client_secret={client_secret}&code={code}&grant_type=authorization_code&redirect_uri={redirect_uri}"
@@ -161,6 +161,8 @@ async def process_oauth_callback(
             is_verified_by_default=True,
             editors=editors,
             editor_of=editor_of,
+            avatar_url=decoded_jws["picture"],
+            display_name=decoded_jws["preferred_username"],
         )
     except UserAlreadyExists:
         raise HTTPException(

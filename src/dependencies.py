@@ -7,7 +7,7 @@ current_user = fastapi_users.current_user()
 
 
 async def current_user_editor(broadcaster_id: str, user: User = Depends(current_user)):
-    twitch = user.platforms[0]
+    twitch = user.connections[0]
     if twitch.account_id == broadcaster_id:
         return user
 
