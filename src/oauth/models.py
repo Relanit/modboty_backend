@@ -13,8 +13,6 @@ class OAuthAccount(BaseModel):
     account_email: str
     username: str
     display_name: str
-    editors: list[str] = Field(default_factory=list)
-    editor_of: list[str] = Field(default_factory=list)
 
 
 class User(Document):
@@ -26,7 +24,9 @@ class User(Document):
     avatar_url: str
     username: str
     display_name: str
-    connections: list[OAuthAccount] = Field(default_factory=list)
+    editors: list[str] = Field(default_factory=list)
+    editor_of: list[str] = Field(default_factory=list)
+    account_id: str
 
     class Settings:
         name = "User"
