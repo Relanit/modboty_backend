@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from beanie import PydanticObjectId
 from fastapi_users import schemas
 from pydantic import BaseModel, Field
@@ -15,7 +17,9 @@ class OAuthURL(BaseModel):
 
 
 class UserRead(schemas.BaseUser[PydanticObjectId]):
+    created_at: datetime
     avatar_url: str
+    username: str
     display_name: str
     connections: list[OAuthAccount] = Field(default_factory=list)
 

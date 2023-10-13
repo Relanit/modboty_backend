@@ -9,3 +9,4 @@ fastapi-cache2[redis]
 pydantic==2.4.2
 redis==5.0.1
 fastapi-users[beanie]
+twitchio==2.8.2

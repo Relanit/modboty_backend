@@ -2,6 +2,7 @@ import json
 from urllib.parse import urlencode
 
 import jwt
+import twitchio
 from aiohttp import ClientSession
 from beanie.operators import Or
 from fastapi import HTTPException
@@ -42,7 +43,7 @@ authorization_scope = " ".join(
         "channel:read:vips",
         "moderation:read",
         "user:read:email",
-        "openid"
+        "openid",
     ]
 )
 
@@ -135,7 +136,10 @@ async def process_login(
 
 
 async def process_oauth_callback(
-    user_manager: UserManager, results: dict, decoded_jws: dict, request: Request
+    user_manager: UserManager,
+    results: dict,
+    decoded_jws: dict,
+    request: Request,
 ) -> models.UOAP:
     subject_id = int(decoded_jws["sub"])
 
@@ -147,6 +151,9 @@ async def process_oauth_callback(
 
     editor_of = [document.channel_id for document in documents if subject_id in document.editors]
     editor_of = list(map(str, editor_of))
+
+    twitch_client = twitchio.Client(results["access_token"])
+    user = (await twitch_client.fetch_users(ids=[int(decoded_jws["sub"])]))[0]
 
     try:
         user = await user_manager.oauth_callback(
@@ -162,6 +169,7 @@ async def process_oauth_callback(
             editors=editors,
             editor_of=editor_of,
             avatar_url=decoded_jws["picture"],
+            username=user.name,
             display_name=decoded_jws["preferred_username"],
         )
     except UserAlreadyExists:

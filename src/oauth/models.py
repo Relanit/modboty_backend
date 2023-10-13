@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from beanie import Document, PydanticObjectId
 from pydantic import Field, BaseModel
 from pymongo import IndexModel
@@ -9,6 +11,8 @@ class OAuthAccount(BaseModel):
     platform: str
     account_id: str
     account_email: str
+    username: str
+    display_name: str
     editors: list[str] = Field(default_factory=list)
     editor_of: list[str] = Field(default_factory=list)
 
@@ -18,12 +22,14 @@ class User(Document):
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
+    created_at: datetime
     avatar_url: str
+    username: str
     display_name: str
     connections: list[OAuthAccount] = Field(default_factory=list)
 
     class Settings:
-        name = "user"
+        name = "User"
         email_collation = Collation("en", strength=2)
         indexes = [
             IndexModel("email", unique=True),

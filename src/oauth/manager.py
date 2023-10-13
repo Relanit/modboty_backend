@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from beanie import PydanticObjectId
 from fastapi import Depends
 from fastapi.requests import Request
@@ -36,6 +38,7 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         editors=None,
         editor_of=None,
         avatar_url=None,
+        username=None,
         display_name=None,
     ) -> models.UOAP:
         """
@@ -67,6 +70,7 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         :param editors: list of channel editors account ids
         :param editor_of: list of account ids where user is editor
         :param avatar_url: url to user's avatar
+        :param display_name: user name
         :param display_name: user's display name
         :return: A user.
         """
@@ -78,6 +82,8 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
             "platform": platform,
             "account_id": account_id,
             "account_email": account_email,
+            "username": username,
+            "display_name": display_name,
             "editors": editors,
             "editor_of": editor_of,
         }
@@ -93,11 +99,14 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
                 user = await self.user_db.add_oauth_account(user, oauth_account_dict)
             except exceptions.UserNotExists:
                 # Create account
+                now = datetime.utcnow()
                 user_dict = {
                     "email": account_email,
                     "is_verified": is_verified_by_default,
                     "avatar_url": avatar_url,
-                    "display_name": display_name
+                    "username": username,
+                    "display_name": display_name,
+                    "created_at": now
                 }
                 user = await self.user_db.create(user_dict)
                 user = await self.user_db.add_oauth_account(user, oauth_account_dict)
