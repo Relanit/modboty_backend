@@ -25,7 +25,6 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
 
     async def oauth_callback(
         self: "BaseUserManager[models.UOAP, models.ID]",
-        platform: str,
         _: str,
         account_id: str,
         account_email: str,
@@ -52,7 +51,6 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
 
         If the user does not exist, it is created and the on_after_register handler
         is triggered.
-        :param platform: Name of the OAuth client.
         :param _: Valid access token for the service provider.
         :param account_id: models.ID of the user on the service provider.
         :param account_email: E-mail of the user on the service provider.
@@ -78,6 +76,7 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
             editor_of = []
         if editors is None:
             editors = []
+        platform = "twitch"
         oauth_account_dict = {
             "platform": platform,
             "account_id": account_id,
@@ -103,13 +102,16 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
                 user_dict = {
                     "email": account_email,
                     "is_verified": is_verified_by_default,
+                    "account_id": account_id,
                     "avatar_url": avatar_url,
                     "username": username,
                     "display_name": display_name,
+                    "editors": editors,
+                    "editor_of": editor_of,
                     "created_at": now
                 }
                 user = await self.user_db.create(user_dict)
-                user = await self.user_db.add_oauth_account(user, oauth_account_dict)
+                # user = await self.user_db.add_oauth_account(user, oauth_account_dict)
                 await self.on_after_register(user, request)
         else:
             # Update oauth

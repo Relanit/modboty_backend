@@ -157,7 +157,6 @@ async def process_oauth_callback(
 
     try:
         user = await user_manager.oauth_callback(
-            "twitch",
             results["access_token"],
             decoded_jws["sub"],
             decoded_jws["email"],
@@ -168,9 +167,9 @@ async def process_oauth_callback(
             is_verified_by_default=True,
             editors=editors,
             editor_of=editor_of,
-            avatar_url=decoded_jws["picture"],
+            avatar_url=user.profile_image,
             username=user.name,
-            display_name=decoded_jws["preferred_username"],
+            display_name=user.display_name,
         )
     except UserAlreadyExists:
         raise HTTPException(
