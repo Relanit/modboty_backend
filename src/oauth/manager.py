@@ -113,16 +113,16 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
                 user = await self.user_db.create(user_dict)
                 # user = await self.user_db.add_oauth_account(user, oauth_account_dict)
                 await self.on_after_register(user, request)
-        else:
-            # Update oauth
-            for existing_oauth_account in user.connections:
-                if (
-                    existing_oauth_account.account_id == account_id
-                    and existing_oauth_account.platform == platform
-                ):
-                    user = await self.user_db.update_oauth_account(
-                        user, existing_oauth_account, oauth_account_dict
-                    )
+        # else:
+        #     # Update oauth
+        #     for existing_oauth_account in user.connections:
+        #         if (
+        #             existing_oauth_account.account_id == account_id
+        #             and existing_oauth_account.platform == platform
+        #         ):
+        #             user = await self.user_db.update_oauth_account(
+        #                 user, existing_oauth_account, oauth_account_dict
+        #             )
 
         return user
 
