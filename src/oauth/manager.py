@@ -68,7 +68,7 @@ class UserManager(ObjectIDIDMixin, BaseUserManager[User, PydanticObjectId]):
         :param editors: list of channel editors account ids
         :param editor_of: list of account ids where user is editor
         :param avatar_url: url to user's avatar
-        :param display_name: user name
+        :param username: username
         :param display_name: user's display name
         :return: A user.
         """

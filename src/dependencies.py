@@ -7,11 +7,10 @@ current_user = fastapi_users.current_user()
 
 
 async def current_user_editor(broadcaster_id: str, user: User = Depends(current_user)):
-    twitch = user.connections[0]
-    if twitch.account_id == broadcaster_id:
+    if user.account_id == broadcaster_id:
         return user
 
-    if broadcaster_id not in twitch.editor_of:
+    if broadcaster_id not in user.editor_of:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No editor role on the specified channel")
 
     return user
