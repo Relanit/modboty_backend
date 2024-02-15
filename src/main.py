@@ -29,7 +29,7 @@ app.include_router(
     tags=["users"],
 )
 
-origins = ["http://localhost:8080", "https://modbot.xyz", "http://localhost:5000"]
+origins = ["http://localhost:8080", "https://modboty.com", "http://localhost:5000"]
 
 app.add_middleware(
     CORSMiddleware,
