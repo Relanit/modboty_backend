@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from beanie import init_beanie
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,8 +20,23 @@ app_configs = {}
 if not config["app"]["show_docs"]:
     app_configs["openapi_url"] = None
 
-app = FastAPI(**app_configs)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    SingletonAiohttp.get_async_session()
+    redis = aioredis.from_url(
+        config["redis"]["connection_string"], encoding="utf8", decode_responses=True
+    )
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    await init_beanie(
+        database=db,
+        document_models=[User, Editors, Config],
+    )
+    yield
+    await SingletonAiohttp.close_async_session()
+
+
+app = FastAPI(lifespan=lifespan, **app_configs)
 
 app.include_router(home_page_router)
 app.include_router(oauth_router)
@@ -44,23 +61,3 @@ app.add_middleware(
         "Authorization",
     ],
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    SingletonAiohttp.get_async_session()
-    redis = aioredis.from_url(config["redis"]["connection_string"], encoding="utf8", decode_responses=True)
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
-    await init_beanie(
-        database=db,
-        document_models=[
-            User,
-            Editors,
-            Config
-        ],
-    )
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await SingletonAiohttp.close_async_session()
