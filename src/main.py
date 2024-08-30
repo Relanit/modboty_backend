@@ -38,14 +38,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan, **app_configs)
 
-app.include_router(home_page_router)
-app.include_router(oauth_router)
-app.include_router(
-    fastapi_users.get_users_router(UserRead, UserUpdate),
-    prefix="/users",
-    tags=["users"],
-)
-
 origins = ["http://localhost:8080", "https://modboty.com", "http://localhost:5000"]
 
 app.add_middleware(
@@ -60,4 +52,12 @@ app.add_middleware(
         "Access-Control-Allow-Origin",
         "Authorization",
     ],
+)
+
+app.include_router(home_page_router)
+app.include_router(oauth_router)
+app.include_router(
+    fastapi_users.get_users_router(UserRead, UserUpdate),
+    prefix="/users",
+    tags=["users"],
 )
